@@ -5,17 +5,16 @@ from threading import Semaphore
 
 def connScan(targetHost,targetPort):
     screenLock = Semaphore()
+    screenLock.acquire()
     try:
         connectedSocket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        connectedSocket.create_connection((targetHost,targetPort))
+        connectedSocket.connect((targetHost,targetPort))
         connectedSocket.send(b'ViolentPython\n')
         results = connectedSocket.recv(100).decode('utf-8')
-        screenLock.acquire()
         print("[+] TCP open {r}".format(r = targetPort))
         print("[+] {r}".format(r = results))
         connectedSocket.close()
     except:
-        screenLock.acquire()
         print("[-] TCP closed {r} port.".format(r = targetPort))
     finally:
         screenLock.release()
