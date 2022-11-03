@@ -23,7 +23,7 @@ class EchoSever:
         clientSocket, addr = externalSocket.accept()
         print("Accepted connection from {a}".format(a = addr))
         clientSocket.setblocking(False)
-        data = types.SimpleNamespace(addr = addr)
+        data = types.SimpleNamespace(addr = addr, state = 0)
         events = selectors.EVENT_WRITE
         self.selector.register(clientSocket,events, data = data)
     
@@ -31,21 +31,21 @@ class EchoSever:
         clientSocket = key.fileobj
         try:
             if mask & selectors.EVENT_WRITE:
-                message = "Welcome to the server!"
-                message = f"{len(message):<{self.headerSize}}" + message
-                clientSocket.send(bytes(message, "UTF-8"))
-                try:
-                    while True:                 # The While will halt the server per user. Need to find python synch info.
-                        time.sleep(3)
-                        message = "The time is {t}.".format(t = time.time())
-                        message = f"{len(message):<{self.headerSize}}" + message
-                        clientSocket.send(bytes(message, "UTF-8"))
-                except KeyboardInterrupt:
-                    print("Keyboard input accepted! Closing connection!")
+                if key.data.state == 0:
+                    message = "Welcome to the server!"
+                    message = f"{len(message):<{self.headerSize}}" + message
+                    clientSocket.send(bytes(message, "UTF-8"))
+                    key.data.state = 1
+                elif key.data.state == 1:
+                    time.sleep(3)
+                    message = "The time is {t}.".format(t = time.time())
+                    message = f"{len(message):<{self.headerSize}}" + message
+                    clientSocket.send(bytes(message, "UTF-8"))
         except Exception as e:
-            print("Seems something happened with the connection {addr}".format(addr = key.data))
-        self.selector.unregister(clientSocket)
-        clientSocket.close()
+            print("Seems something happened with the connection {addr}".format(addr = key.data.addr))
+            self.selector.unregister(clientSocket)
+            clientSocket.close()
+            
 if __name__ == "__main__":
     server = EchoSever("127.0.0.1", 65432)
     server.startServer()
